@@ -15,13 +15,13 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import axios from "axios";
 //页面输入参数
-const qpDate = ref();
-const moeny = ref();
-const time = ref();
-const piaoId = ref();
+const qpDate = ref("2023-07-23");
+const moeny = ref("12800");
+const time = ref("0.3");
+const piaoId = ref("73710");
 const inputSetTime = ref();
 const tishi = ref();
 //需要的接口参数
@@ -47,9 +47,9 @@ const onclick = async () => {
         await getTicketInf(); //获取id
         //去抢
         //if (!ticketList.value[getPiaoType.value].clickable) {
-          tishi.value = `获取getTonke中....`;
-          clearInterval(oneSetRepeatTask);
-          await grabTicket();
+        tishi.value = `获取getTonke中....`;
+        clearInterval(oneSetRepeatTask);
+        await grabTicket();
         //}
         i++;
         tishi.value = `第${i}次判断是否有票`;
@@ -140,16 +140,37 @@ const grabTicket = async () => {
     if (res.data.errno === 0 && res.data.errtag === 0 && res.data.data.token) {
       clearInterval(setRepeatTask);
       tishi.value = `第${i}次抢票，抢到了，请尽快去支付`;
+      //付款界面
+      let resPay = await axios({
+        method: "GET",
+        url: `/api/ticket/order/createstatus?token=${
+          res.data.data.token
+        }&timestamp=${new Date().getTime()}&project_id=${piaoId.value}`,
+      });
+      let payObj = resPay.data.data.payParam;
+      delete payObj.code_url;
+      delete payObj.expire_time;
+      delete payObj.pay_type;
+      delete payObj.use_huabei;
+      let params = encodeURIComponent(JSON.stringify(payObj));
+      window.open(
+        "https://pay.bilibili.com/payplatform-h5/pccashier.html?params=" +
+          params,
+        "_blank"
+      );
       alert("抢到了，请尽快去支付");
     } else {
       tishi.value = `第${i}次抢票，${res.data.msg}`;
     }
-    if (i > 1000) {
+    if (i > 500) {
       clearInterval(setRepeatTask);
       onclick();
     }
   }, 1000);
 };
+watch(new Date().getTime(), (a) => {
+  console.log(a);
+});
 </script>
 
 <style></style>
