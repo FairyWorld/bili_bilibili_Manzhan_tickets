@@ -4,10 +4,12 @@
     <div>票信息ID（url上有）<input type="text" v-model="piaoId" /></div>
     <div>抢票日期 <input type="date" v-model="qpDate" /></div>
     <div>钱数<input type="text" v-model="moeny" />（分）</div>
-    <div><input type="text" v-model="time" />秒抢一次</div>
     <div>
-      <input type="datetime-local" v-model="inputSetTime" />设定开始抢票时间
+      是否是抢捡漏票
+      <label> <input type="radio" v-model="isJl" :value="1" />是 </label>
+      <label> <input type="radio" v-model="isJl" :value="0" />否 </label>
     </div>
+    <div><input type="text" v-model="time" />秒抢一次</div>
     <div>{{ tishi }}</div>
     <button @click="onclick">开始</button>
     <button @click="toStop">停止</button>
@@ -15,50 +17,49 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import axios from "axios";
 //页面输入参数
 const qpDate = ref("2023-07-23");
 const moeny = ref("12800");
 const time = ref("0.3");
+
 const piaoId = ref("73710");
-const inputSetTime = ref();
 const tishi = ref();
+const isJl = ref(1);
 //需要的接口参数
 const grxx = ref();
 const ticketList = ref();
 const screenId = ref();
 const getPiaoType = ref(0);
 const token = ref();
+//两个定时器
+const oneSetRepeatTask = ref();
+const setRepeatTask = ref();
 
 const onclick = async () => {
+  clearInterval(oneSetRepeatTask.value);
+  clearInterval(setRepeatTask.value);
   //获取时间是否可以抢票
-  if (
-    !inputSetTime.value ||
-    new Date().getTime() > new Date(inputSetTime.value).getTime()
-  ) {
-    //时间到了，开始抢票
-    tishi.value = "正在获取个人信息";
-    await getPerInf(); //获取信息
-    tishi.value = "正在获取票务信息";
-    let i = 0;
-    let oneSetRepeatTask = setInterval(
-      async () => {
-        await getTicketInf(); //获取id
-        //去抢
-        //if (!ticketList.value[getPiaoType.value].clickable) {
+  //时间到了，开始抢票
+  tishi.value = "正在获取个人信息";
+  await getPerInf(); //获取信息
+  tishi.value = "正在获取票务信息";
+  let i = 0;
+  oneSetRepeatTask.value = setInterval(
+    async () => {
+      await getTicketInf(); //获取id
+      //去抢
+      if (ticketList.value[getPiaoType.value].clickable || isJl.value) {
         tishi.value = `获取getTonke中....`;
-        clearInterval(oneSetRepeatTask);
+        clearInterval(oneSetRepeatTask.value);
         await grabTicket();
-        //}
-        i++;
-        tishi.value = `第${i}次判断是否有票`;
-      },
-      time.value ? time.value * 1000 : 1000
-    );
-  } else {
-    tishi.value = "时间还没有到哦";
-  }
+      }
+      i++;
+      tishi.value = `第${i}次判断是否有票`;
+    },
+    time.value ? time.value * 1000 : 1000
+  );
 };
 const toStop = () => {};
 //获取个人信息
@@ -118,7 +119,7 @@ const getTonke = async () => {
 const grabTicket = async () => {
   let i = 0;
   await getTonke();
-  let setRepeatTask = setInterval(async () => {
+  setRepeatTask.value = setInterval(async () => {
     i++;
     let res = await axios({
       //抢
@@ -138,8 +139,7 @@ const grabTicket = async () => {
       },
     });
     if (res.data.errno === 0 && res.data.errtag === 0 && res.data.data.token) {
-      clearInterval(setRepeatTask);
-      tishi.value = `第${i}次抢票，抢到了，请尽快去支付`;
+      tishi.value = `第${i}次抢票，判断票是否可以使用`;
       //付款界面
       let resPay = await axios({
         method: "GET",
@@ -147,30 +147,39 @@ const grabTicket = async () => {
           res.data.data.token
         }&timestamp=${new Date().getTime()}&project_id=${piaoId.value}`,
       });
-      let payObj = resPay.data.data.payParam;
-      delete payObj.code_url;
-      delete payObj.expire_time;
-      delete payObj.pay_type;
-      delete payObj.use_huabei;
-      let params = encodeURIComponent(JSON.stringify(payObj));
-      window.open(
-        "https://pay.bilibili.com/payplatform-h5/pccashier.html?params=" +
-          params,
-        "_blank"
-      );
-      alert("抢到了，请尽快去支付");
+      if (resPay.data.data) {
+        clearInterval(setRepeatTask.value);
+        let payObj = resPay.data.data.payParam;
+        delete payObj.code_url;
+        delete payObj.expire_time;
+        delete payObj.pay_type;
+        delete payObj.use_huabei;
+        let params = encodeURIComponent(JSON.stringify(payObj));
+        window.open(
+          "https://pay.bilibili.com/payplatform-h5/pccashier.html?params=" +
+            params,
+          "_blank"
+        );
+        tishi.value = `第${i}次抢票，抢到了，请尽快去支付`;
+        let audio = new Audio("./aaa.mp3");
+        audio.autoplay = true;
+        audio.loop = true;
+        audio.play();
+        alert("抢到了，请尽快去支付");
+      }
     } else {
       tishi.value = `第${i}次抢票，${res.data.msg}`;
     }
+    if (res.data.errno === 100051) {
+      onclick();
+    }
     if (i > 500) {
-      clearInterval(setRepeatTask);
+      clearInterval(setRepeatTask.value);
+
       onclick();
     }
   }, 1000);
 };
-watch(new Date().getTime(), (a) => {
-  console.log(a);
-});
 </script>
 
 <style></style>
