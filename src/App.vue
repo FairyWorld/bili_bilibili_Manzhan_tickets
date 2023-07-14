@@ -147,7 +147,7 @@ const grabTicket = async () => {
           res.data.data.token
         }&timestamp=${new Date().getTime()}&project_id=${piaoId.value}`,
       });
-      if (resPay.data.data) {
+      if (resPay.data.data.payParam) {
         clearInterval(setRepeatTask.value);
         let payObj = resPay.data.data.payParam;
         delete payObj.code_url;
