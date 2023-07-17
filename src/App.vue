@@ -1,32 +1,68 @@
 <template>
   <div>
-    <div>只可以抢默认购票人</div>
-    <div>票信息ID（url上有）<input type="text" v-model="piaoId" /></div>
-    <div>抢票日期 <input type="date" v-model="qpDate" /></div>
-    <div>钱数<input type="text" v-model="moeny" />（分）</div>
-    <div>
-      是否是抢捡漏票
-      <label> <input type="radio" v-model="isJl" :value="1" />是 </label>
-      <label> <input type="radio" v-model="isJl" :value="0" />否 </label>
-    </div>
-    <div><input type="text" v-model="time" />秒抢一次</div>
-    <div>{{ tishi }}</div>
-    <button @click="onclick">开始</button>
-    <button @click="toStop">停止</button>
+    <div style="margin-top: 20vh;margin-bottom: 10vh;">
+    <a-card title="BW2023"  style="margin: 0 auto;" class="card-fit">
+      <a-alert v-bind:message="tishi" type="success" />
+      <a-form
+        name="basic"
+        :label-col="{ span: 8 }"
+        :wrapper-col="{ span: 16 }"
+        autocomplete="off"  
+        style="margin: 2vh 2vw 2vh 2vw"
+      >
+      <!-- <a-form-item label="cookie" name="cookie">
+        <a-textarea v-model:value="cookie" placeholder="textarea with clear icon" allow-clear />
+        </a-form-item> -->
+        <a-form-item label="漫展id" name="漫展id">
+          <a-input v-model:value="piaoId" />
+        </a-form-item>
+        <a-form-item label="抢票日期" name="抢票日期">
+          <a-date-picker  format="YYYY-MM-DD" @change="onChange" />
+        </a-form-item>
+        <a-form-item label="票价" name="票价">
+          <a-select ref="select" v-model:value="moeny">
+            <a-select-option value="12800">128</a-select-option>
+            <a-select-option value="32800">328</a-select-option>
+            <a-select-option value="58800">588</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="是否为捡漏票" name="是否为捡漏票">
+          <a-radio-group v-model:value="isJl" name="radioGroup">
+            <a-radio value="1">是</a-radio>
+            <a-radio value="0">否</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="频率" name="频率">
+          <a-input v-model:value="time">
+            <template #addonAfter>
+              <span>秒抢一个</span>
+            </template>
+          </a-input>
+        </a-form-item>
+        <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
+          <a-button type="primary" html-type="submit" @click="onclick"
+          >开始</a-button
+          >
+        </a-form-item>
+      </a-form>
+    </a-card>
+  </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+
+// let cookie;
 //页面输入参数
-const qpDate = ref("2023-07-23");
+let qpDate = ref();
 const moeny = ref("12800");
-const time = ref("0.3");
+const time = ref("0.4");
 
 const piaoId = ref("73710");
-const tishi = ref();
-const isJl = ref(1);
+const tishi = ref("info");
+const isJl = ref('1');
 //需要的接口参数
 const grxx = ref();
 const ticketList = ref();
@@ -36,8 +72,19 @@ const token = ref();
 //两个定时器
 const oneSetRepeatTask = ref();
 const setRepeatTask = ref();
-
+const onChange = (value, dateString) => {
+  console.log('Selected Time: ', value);
+  console.log('Formatted Selected Time: ', dateString);
+  qpDate=ref(dateString);
+};
 const onclick = async () => {
+  // if(cookie)
+  // {
+  //   window.localStorage.setItem("cookie",cookie);
+  // }
+  // else{
+  //   alert("cookies尚未获取");
+  // }
   clearInterval(oneSetRepeatTask.value);
   clearInterval(setRepeatTask.value);
   //获取时间是否可以抢票
@@ -61,7 +108,6 @@ const onclick = async () => {
     time.value ? time.value * 1000 : 1000
   );
 };
-const toStop = () => {};
 //获取个人信息
 const getPerInf = async () => {
   let res = await axios({
@@ -180,6 +226,24 @@ const grabTicket = async () => {
     }
   }, 1000);
 };
+//  const setCookie=()=> {
+//   if(window.localStorage.getItem("cookie"))
+//   {
+//     cookie=window.localStorage.getItem("cookie");
+//   }
+// };
+// document.addEventListener("DOMContentLoaded",setCookie);
 </script>
 
-<style></style>
+<style>
+@media only screen and (max-width: 600px) {
+  .card-fit{
+    width: 90vw;
+  }
+}
+@media only screen and (min-width: 600px) {
+  .card-fit {
+    width: 600px;
+  }
+}
+</style>
