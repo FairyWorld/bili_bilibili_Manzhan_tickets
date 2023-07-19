@@ -1,68 +1,77 @@
 <template>
   <div>
-    <div style="margin-top: 20vh;margin-bottom: 10vh;">
-    <a-card title="BW2023"  style="margin: 0 auto;" class="card-fit">
-      <a-alert v-bind:message="tishi" type="success" />
-      <a-form
-        name="basic"
-        :label-col="{ span: 8 }"
-        :wrapper-col="{ span: 16 }"
-        autocomplete="off"  
-        style="margin: 2vh 2vw 2vh 2vw"
-      >
-      <!-- <a-form-item label="cookie" name="cookie">
+    <div style="margin-top: 20vh; margin-bottom: 10vh">
+      <a-card :title="projetTitle" style="margin: 0 auto" class="card-fit">
+        <a-alert v-bind:message="tishi" type="success" />
+        <a-form
+          name="basic"
+          :label-col="{ span: 8 }"
+          :wrapper-col="{ span: 16 }"
+          autocomplete="off"
+          style="margin: 2vh 2vw 2vh 2vw"
+        >
+          <!-- <a-form-item label="cookie" name="cookie">
         <a-textarea v-model:value="cookie" placeholder="textarea with clear icon" allow-clear />
         </a-form-item> -->
-        <a-form-item label="漫展id" name="漫展id">
-          <a-input v-model:value="piaoId" />
-        </a-form-item>
-        <a-form-item label="抢票日期" name="抢票日期">
-          <a-date-picker  format="YYYY-MM-DD" @change="onChange" />
-        </a-form-item>
-        <a-form-item label="票价" name="票价">
-          <a-select ref="select" v-model:value="moeny">
-            <a-select-option value="12800">128</a-select-option>
-            <a-select-option value="32800">328</a-select-option>
-            <a-select-option value="58800">588</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="是否为捡漏票" name="是否为捡漏票">
-          <a-radio-group v-model:value="isJl" name="radioGroup">
-            <a-radio value="1">是</a-radio>
-            <a-radio value="0">否</a-radio>
-          </a-radio-group>
-        </a-form-item>
-        <a-form-item label="频率" name="频率">
-          <a-input v-model:value="time">
-            <template #addonAfter>
-              <span>秒抢一个</span>
-            </template>
-          </a-input>
-        </a-form-item>
-        <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
-          <a-button type="primary" html-type="submit" @click="onclick"
-          >开始</a-button
-          >
-        </a-form-item>
-      </a-form>
-    </a-card>
-  </div>
+          <a-form-item label="漫展id" name="漫展id">
+            <a-input v-model:value="piaoId" @blur="piaoIdBlur" />
+          </a-form-item>
+          <a-form-item label="抢票日期" name="抢票日期">
+            <a-date-picker format="YYYY-MM-DD" @change="onChange" />
+          </a-form-item>
+          <a-form-item label="票价" name="票价">
+            <a-select
+              ref="select"
+              v-model:value="moeny"
+              :disabled="projetTitle === '标题'"
+            >
+              <a-select-option
+                :value="item.value"
+                v-for="(item, index) in moenyOption"
+                :key="index"
+                >{{ item.label }}</a-select-option
+              >
+            </a-select>
+          </a-form-item>
+          <a-form-item label="是否为捡漏票" name="是否为捡漏票">
+            <a-radio-group v-model:value="isJl" name="radioGroup">
+              <a-radio value="1">是</a-radio>
+              <a-radio value="0">否</a-radio>
+            </a-radio-group>
+          </a-form-item>
+          <a-form-item label="频率" name="频率">
+            <a-input v-model:value="time">
+              <template #addonAfter>
+                <span>秒抢一个</span>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
+            <a-button type="primary" html-type="submit" @click="onclick"
+              >开始</a-button
+            >
+          </a-form-item>
+        </a-form>
+      </a-card>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
-
+import { message } from "ant-design-vue";
 // let cookie;
 //页面输入参数
 let qpDate = ref();
-const moeny = ref("12800");
+const moeny = ref("");
 const time = ref("0.4");
 
-const piaoId = ref("73710");
+const piaoId = ref("");
 const tishi = ref("info");
-const isJl = ref('1');
+const isJl = ref("1");
+const projetTitle = ref("标题");
+const moenyOption = ref([]);
 //需要的接口参数
 const grxx = ref();
 const ticketList = ref();
@@ -73,9 +82,9 @@ const token = ref();
 const oneSetRepeatTask = ref();
 const setRepeatTask = ref();
 const onChange = (value, dateString) => {
-  console.log('Selected Time: ', value);
-  console.log('Formatted Selected Time: ', dateString);
-  qpDate=ref(dateString);
+  console.log("Selected Time: ", value);
+  console.log("Formatted Selected Time: ", dateString);
+  qpDate = ref(dateString);
 };
 const onclick = async () => {
   // if(cookie)
@@ -125,6 +134,7 @@ const getTicketInf = async () => {
     url: `/api/ticket/project/get?version=134&id=${piaoId.value}`,
   });
   let arr = res.data.data;
+
   for (let i = 0; i < arr.screen_list.length; i++) {
     if (arr.screen_list[i].show_date === qpDate.value) {
       ticketList.value = arr.screen_list[i].ticket_list;
@@ -226,18 +236,39 @@ const grabTicket = async () => {
     }
   }, 1000);
 };
-//  const setCookie=()=> {
-//   if(window.localStorage.getItem("cookie"))
-//   {
-//     cookie=window.localStorage.getItem("cookie");
-//   }
-// };
-// document.addEventListener("DOMContentLoaded",setCookie);
+const piaoIdBlur = async () => {
+  moenyOption.value = [];
+  let res = await axios({
+    method: "GET",
+    url: `/api/ticket/project/get?version=134&id=${piaoId.value}`,
+  });
+  if (res.data.data.name) {
+    projetTitle.value = res.data.data.name;
+    res.data.data.performance_desc.list.forEach((item) => {
+      if (item.module === "ticket_desc") {
+        item.details.ticket_list.forEach((ticket_list_item) => {
+          moenyOption.value.push({
+            value: "" + 100 * +ticket_list_item.price,
+            label: ticket_list_item.price,
+          });
+        });
+      }
+    });
+    moenyOption.value = Array.from(
+      new Set(moenyOption.value.map((item) => item.value))
+    ).map((value) => {
+      return moenyOption.value.find((item) => item.value === value);
+    });
+    //获取
+  } else {
+    message.info("输入正确的id");
+  }
+};
 </script>
 
 <style>
 @media only screen and (max-width: 600px) {
-  .card-fit{
+  .card-fit {
     width: 90vw;
   }
 }
