@@ -81,10 +81,10 @@ const token = ref();
 //两个定时器
 const oneSetRepeatTask = ref();
 const setRepeatTask = ref();
+
 const onChange = (value, dateString) => {
-  console.log("Selected Time: ", value);
-  console.log("Formatted Selected Time: ", dateString);
-  qpDate = ref(dateString);
+  qpDate.value = dateString;
+  piaoIdBlur();
 };
 const onclick = async () => {
   // if(cookie)
@@ -221,7 +221,6 @@ const grabTicket = async () => {
         audio.autoplay = true;
         audio.loop = true;
         audio.play();
-        alert("抢到了，请尽快去支付");
       }
     } else {
       tishi.value = `第${i}次抢票，${res.data.msg}`;
@@ -244,14 +243,29 @@ const piaoIdBlur = async () => {
   });
   if (res.data.data.name) {
     projetTitle.value = res.data.data.name;
-    res.data.data.performance_desc.list.forEach((item) => {
-      if (item.module === "ticket_desc") {
-        item.details.ticket_list.forEach((ticket_list_item) => {
+    //获取qpDate（YYYY-MM-DD）和res.data.data.screen_list（MM月DD日）数组中name相同的对象
+    //qpDate.value的格式是YYYY-MM-DD，改为M月D日
+    // 假设原始日期字符串为 "YYYY-MM-DD"
+    const originalDateString = qpDate.value;
+    const originalDate = new Date(originalDateString);
+
+    // 格式化为 "M月D日"
+    const formattedDate = originalDate.toLocaleDateString("zh-CN", {
+      month: "short", // 使用缩写的月份名称，例如 "9月" 变为 "9"
+      day: "numeric", // 使用数字表示日期，例如 "8"
+    });
+
+    res.data.data.screen_list.forEach((item) => {
+      if (item.name === formattedDate) {
+        item.ticket_list.forEach((ticket_list_item) => {
           moenyOption.value.push({
-            value: "" + 100 * +ticket_list_item.price,
-            label: ticket_list_item.price,
+            value: ticket_list_item.price,
+            label: ticket_list_item.desc,
           });
         });
+        return;
+      } else {
+        message.info("没有匹配的日期");
       }
     });
     moenyOption.value = Array.from(
