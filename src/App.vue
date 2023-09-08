@@ -254,20 +254,22 @@ const piaoIdBlur = async () => {
       month: "short", // 使用缩写的月份名称，例如 "9月" 变为 "9"
       day: "numeric", // 使用数字表示日期，例如 "8"
     });
-
+    let flay = false;
     res.data.data.screen_list.forEach((item) => {
       if (item.name === formattedDate) {
+        flay = true;
         item.ticket_list.forEach((ticket_list_item) => {
           moenyOption.value.push({
             value: ticket_list_item.price,
             label: ticket_list_item.desc,
           });
         });
-        return;
-      } else {
-        message.info("没有匹配的日期");
+        return false;
       }
     });
+    if (!flay && qpDate.value) {
+      message.info("该日期没有票");
+    }
     moenyOption.value = Array.from(
       new Set(moenyOption.value.map((item) => item.value))
     ).map((value) => {
