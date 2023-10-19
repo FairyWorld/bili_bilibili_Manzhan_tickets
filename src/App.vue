@@ -35,9 +35,17 @@
           </a-form-item>
           <a-form-item label="是否为捡漏票" name="是否为捡漏票">
             <a-radio-group v-model:value="isJl" name="radioGroup">
-              <a-radio value="1">是</a-radio>
-              <a-radio value="0">否</a-radio>
+              <a-radio value="Y">是</a-radio>
+              <a-radio value="N">否</a-radio>
             </a-radio-group>
+          </a-form-item>
+          <a-form-item label="抢票时间" name="抢票时间">
+            <a-date-picker
+              show-time
+              placeholder="选中抢票时间"
+              :disabled="isJl === 'Y'"
+              v-model:value="startDate"
+            />
           </a-form-item>
           <a-form-item label="频率" name="频率">
             <a-input v-model:value="time">
@@ -65,19 +73,21 @@ import { message } from "ant-design-vue";
 //页面输入参数
 let qpDate = ref();
 const moeny = ref("");
-const time = ref("0.4");
+const time = ref("0.6");
 
 const piaoId = ref("");
 const tishi = ref("info");
-const isJl = ref("1");
+const isJl = ref("Y");
 const projetTitle = ref("标题");
 const moenyOption = ref([]);
+const startDate = ref();
 //需要的接口参数
 const grxx = ref();
 const ticketList = ref();
 const screenId = ref();
 const getPiaoType = ref(0);
 const token = ref();
+
 //两个定时器
 const oneSetRepeatTask = ref();
 const setRepeatTask = ref();
@@ -104,15 +114,25 @@ const onclick = async () => {
   let i = 0;
   oneSetRepeatTask.value = setInterval(
     async () => {
-      await getTicketInf(); //获取id
-      //去抢
-      if (ticketList.value[getPiaoType.value].clickable || isJl.value) {
-        tishi.value = `获取getTonke中....`;
-        clearInterval(oneSetRepeatTask.value);
-        await grabTicket();
+      debugger;
+      let startDateStamp = new Date(startDate.value).getTime();
+      let nowDateStamp = new Date().getTime();
+      if (
+        (nowDateStamp > startDateStamp && isJl.value === "N") ||
+        isJl.value === "Y"
+      ) {
+        await getTicketInf(); //获取id
+        //去抢
+        if (ticketList.value[getPiaoType.value].clickable) {
+          tishi.value = `获取getTonke中....`;
+          clearInterval(oneSetRepeatTask.value);
+          await grabTicket();
+        }
+        i++;
+        tishi.value = `第${i}次判断是否有票`;
+      } else {
+        tishi.value = "等待抢票时间";
       }
-      i++;
-      tishi.value = `第${i}次判断是否有票`;
     },
     time.value ? time.value * 1000 : 1000
   );
@@ -241,22 +261,16 @@ const piaoIdBlur = async () => {
     method: "GET",
     url: `/api/ticket/project/get?version=134&id=${piaoId.value}`,
   });
+  debugger;
   if (res.data.data.name) {
     projetTitle.value = res.data.data.name;
     //获取qpDate（YYYY-MM-DD）和res.data.data.screen_list（MM月DD日）数组中name相同的对象
     //qpDate.value的格式是YYYY-MM-DD，改为M月D日
     // 假设原始日期字符串为 "YYYY-MM-DD"
     const originalDateString = qpDate.value;
-    const originalDate = new Date(originalDateString);
-
-    // 格式化为 "M月D日"
-    const formattedDate = originalDate.toLocaleDateString("zh-CN", {
-      month: "short", // 使用缩写的月份名称，例如 "9月" 变为 "9"
-      day: "numeric", // 使用数字表示日期，例如 "8"
-    });
     let flay = false;
     res.data.data.screen_list.forEach((item) => {
-      if (item.name === formattedDate) {
+      if (item.show_date === originalDateString) {
         flay = true;
         item.ticket_list.forEach((ticket_list_item) => {
           moenyOption.value.push({
